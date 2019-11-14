@@ -169,3 +169,13 @@ const (
 	Nm80211ModeInfra   Nm80211Mode = 2
 	Nm80211ModeAp      Nm80211Mode = 3
 )
+
+//go:generate stringer -type=NMRollbackResult
+type NMRollbackResult uint32
+
+const (
+	NMRollbackResultOk                 NMRollbackResult = 0
+	NMRollbackResultErrNoDevice        NMRollbackResult = 1
+	NMRollbackResultErrDeviceUnmanaged NMRollbackResult = 2
+	NMRollbackResultErrFailed          NMRollbackResult = 3
+)

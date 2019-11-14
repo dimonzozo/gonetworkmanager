@@ -2,6 +2,7 @@ package gonetworkmanager
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/godbus/dbus/v5"
 )
@@ -120,6 +121,11 @@ type NetworkManager interface {
 	// flags: Flags for the creation.
 	// returns: On success, the new checkpoint.
 	CheckpointCreate(devices []Device, rollbackTimeout uint32, flags []NmCheckpointCreateFlags) (Checkpoint, error)
+
+	// Rollback a checkpoint before the timeout is reached.
+	// checkpoint: The checkpoint to be rolled back.
+	// returns: On return, a dictionary of devices and results. Devices are represented by their original D-Bus path; each result is a NMRollbackResult.
+	CheckpointRollback(checkpoint Checkpoint) (map[string]NMRollbackResult, error)
 
 	// Destroy a previously created checkpoint.
 	// checkpoint: The checkpoint to be destroyed. Set to empty to cancel all pending checkpoints.
@@ -383,7 +389,7 @@ func (nm *networkManager) CheckpointCreate(devices []Device, rollbackTimeout uin
 	if err != nil {
 		return nil, err
 	}
-	
+
 	checkpoint, err := NewCheckpoint(checkpointObjectPath)
 	if err != nil {
 		return nil, err
@@ -398,6 +404,16 @@ func (nm *networkManager) CheckpointDestroy(checkpoint Checkpoint) error {
 	} else {
 		return nm.call(NetworkManagerCheckpointDestroy, checkpoint.GetPath())
 	}
+}
+
+func (nm *networkManager) CheckpointRollback(checkpoint Checkpoint) (rollbackResult map[string]NMRollbackResult, err error) {
+	if checkpoint == nil {
+		err = errors.New("should specify checkpoint to rollback")
+		return
+	}
+
+	err = nm.callWithReturn(&rollbackResult, NetworkManagerCheckpointRollback, checkpoint.GetPath())
+	return
 }
 
 func (nm *networkManager) CheckpointAdjustRollbackTimeout(checkpoint Checkpoint, addTimeout uint32) error {
