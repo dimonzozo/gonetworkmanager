@@ -366,14 +366,30 @@ func (nm *networkManager) State() (state NmState, err error) {
 	return
 }
 
-func (nm *networkManager) CheckpointCreate(devices []Device, rollbackTimeout uint32, flags []NmCheckpointCreateFlags) (cp Checkpoint, err error) {
-	intFlags := 0
-	for _, flag := range flags {
-		intFlags |= int(flag)
+func (nm *networkManager) CheckpointCreate(devices []Device, rollbackTimeout uint32, flags []NmCheckpointCreateFlags) (Checkpoint, error) {
+	var checkpointObjectPath dbus.ObjectPath
+
+	var devicePaths []dbus.ObjectPath
+	for _, device := range devices {
+		devicePaths = append(devicePaths, device.GetPath())
 	}
 
-	err = nm.callWithReturn(&cp, NetworkManagerCheckpointCreate, rollbackTimeout, intFlags)
-	return
+	var intFlags uint32
+	for _, flag := range flags {
+		intFlags |= uint32(flag)
+	}
+
+	err := nm.callWithReturn(&checkpointObjectPath, NetworkManagerCheckpointCreate, devicePaths, rollbackTimeout, intFlags)
+	if err != nil {
+		return nil, err
+	}
+	
+	checkpoint, err := NewCheckpoint(checkpointObjectPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return checkpoint, nil
 }
 
 func (nm *networkManager) CheckpointDestroy(checkpoint Checkpoint) error {
